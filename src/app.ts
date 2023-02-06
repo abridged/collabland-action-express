@@ -18,6 +18,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/hello-action", routers.helloAction);
+app.use("/button-action", routers.buttonAction);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

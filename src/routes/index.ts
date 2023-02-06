@@ -1,3 +1,4 @@
 import helloAction from "./hello-action";
+import buttonAction from "./button-action";
 
-export default { helloAction };
+export default { helloAction, buttonAction };
