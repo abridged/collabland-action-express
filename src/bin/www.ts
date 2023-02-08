@@ -2,10 +2,10 @@
 
 import app from "../app";
 import * as http from "http";
-import { AnyObject } from "../types";
 import * as dotenv from "dotenv"; // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
-dotenv.config();
 import debug from "debug";
+
+dotenv.config();
 /**
  * Module dependencies.
  */
@@ -57,7 +57,7 @@ function normalizePort(val: string) {
  * Event listener for HTTP server "error" event.
  */
 
-function onError(error: AnyObject) {
+function onError(error: any) {
   if (error.syscall !== "listen") {
     throw error;
   }

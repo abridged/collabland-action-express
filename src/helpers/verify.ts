@@ -6,6 +6,9 @@ import {
   ActionEd25519SignatureHeader,
   ActionSignatureTimestampHeader,
 } from "../constants";
+import { debugFactory } from "@collabland/common";
+
+const debug = debugFactory("SignatureVerifier");
 
 export class SignatureVerifier {
   verify(req: Request, res: Response) {
@@ -89,8 +92,8 @@ export class SignatureVerifier {
   ) {
     let verified = false;
     try {
-      console.log("Verifying webhook request with Ed25519 signature...");
-      console.log(
+      debug("Verifying webhook request with Ed25519 signature...");
+      debug(
         "Public key: %s, signature: %s, message: %s",
         publicKey,
         signature,
@@ -103,10 +106,10 @@ export class SignatureVerifier {
           Buffer.from(signature, "hex"),
           Buffer.from(publicKey, "hex")
         );
-      console.log("Signature verified: %s", verified);
+      debug("Signature verified: %s", verified);
     } catch (err: any) {
       verified = false;
-      console.log(err.message);
+      debug(err.message);
     }
 
     if (!verified) {
@@ -124,8 +127,8 @@ export class SignatureVerifier {
   ) {
     let verified = false;
     try {
-      console.log("Verifying webhook request with Ecdsa signature...");
-      console.log(
+      debug("Verifying webhook request with Ecdsa signature...");
+      debug(
         "Public key: %s, signature: %s, message: %s",
         publicKey,
         signature,
@@ -135,14 +138,14 @@ export class SignatureVerifier {
       verified =
         signature != null &&
         utils.recoverPublicKey(digest, signature) === publicKey;
-      console.log("Signature verified: %s", verified);
+      debug("Signature verified: %s", verified);
     } catch (err) {
-      console.log("Fail to verify signature: %O", err);
+      debug("Fail to verify signature: %O", err);
       verified = false;
     }
 
     if (!verified) {
-      console.log("Invalid signature: %s, body: %s", signature, body);
+      debug("Invalid signature: %s, body: %s", signature, body);
       throw new Error("Invalid request - Ecdsa signature cannot be verified.");
     }
     return verified;

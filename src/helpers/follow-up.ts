@@ -1,21 +1,32 @@
-import { AnyObject } from "../types";
-import { handleFetchResponse } from "../utils";
+import { getFetch, handleFetchResponse } from "@collabland/common";
+import {
+  APIChatInputApplicationCommandInteraction,
+  APIMessage,
+  DiscordActionRequest,
+  RESTPatchAPIWebhookWithTokenMessageJSONBody,
+  RESTPostAPIWebhookWithTokenJSONBody,
+} from "@collabland/discord";
+
+const fetch = getFetch();
 
 export class FollowUp {
-  async followupMessage(request: AnyObject, message: AnyObject) {
+  async followupMessage(
+    request: DiscordActionRequest<APIChatInputApplicationCommandInteraction>,
+    message: RESTPostAPIWebhookWithTokenJSONBody
+  ) {
     const callback = request.actionContext?.callbackUrl;
     if (callback) {
       const res = await fetch(callback, {
         method: "post",
         body: JSON.stringify(message),
       });
-      return await handleFetchResponse<AnyObject>(res);
+      return await handleFetchResponse<APIMessage>(res);
     }
   }
 
   async editMessage(
-    request: AnyObject,
-    message: AnyObject,
+    request: DiscordActionRequest<APIChatInputApplicationCommandInteraction>,
+    message: RESTPatchAPIWebhookWithTokenMessageJSONBody,
     messageId = "@original"
   ) {
     const callback = request.actionContext?.callbackUrl;
@@ -27,11 +38,14 @@ export class FollowUp {
           body: JSON.stringify(message),
         }
       );
-      return await handleFetchResponse<AnyObject>(res);
+      return await handleFetchResponse<APIMessage>(res);
     }
   }
 
-  async deleteMessage(request: AnyObject, messageId = "@original") {
+  async deleteMessage(
+    request: DiscordActionRequest<APIChatInputApplicationCommandInteraction>,
+    messageId = "@original"
+  ) {
     const callback = request.actionContext?.callbackUrl;
     if (callback) {
       const res = await fetch(
@@ -40,7 +54,7 @@ export class FollowUp {
           method: "delete",
         }
       );
-      await handleFetchResponse<AnyObject>(res);
+      await handleFetchResponse(res);
     }
   }
 }
