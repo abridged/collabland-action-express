@@ -19,6 +19,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/hello-action", routers.helloAction);
 app.use("/button-action", routers.buttonAction);
+app.use("/popup-action", routers.popupAction);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

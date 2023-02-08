@@ -12,37 +12,39 @@ const debug = debugFactory("SignatureVerifier");
 
 export class SignatureVerifier {
   verify(req: Request, res: Response) {
-    const ecdsaSignature = req.header(ActionEcdsaSignatureHeader);
-    const ed25519Signature = req.header(ActionEd25519SignatureHeader);
-    const signatureTimestamp: number = parseInt(
-      req.header(ActionSignatureTimestampHeader) ?? "0"
-    );
-    const body = JSON.stringify(req.body);
-    const publicKey = this.getPublicKey();
-    const signature = ecdsaSignature ?? ed25519Signature;
-    if (!signature) {
-      res.status(401);
-      res.send({
-        message: `${ActionEcdsaSignatureHeader} or ${ActionEd25519SignatureHeader} header is required`,
-      });
-      return;
-    }
-    if (!publicKey) {
-      res.status(401);
-      res.send({
-        message: `Public key is not set.`,
-      });
-      return;
-    }
-    const signatureType = signature === ecdsaSignature ? "ecdsa" : "ed25519";
+    if (!process.env.SKIP_VERIFICATION) {
+      const ecdsaSignature = req.header(ActionEcdsaSignatureHeader);
+      const ed25519Signature = req.header(ActionEd25519SignatureHeader);
+      const signatureTimestamp: number = parseInt(
+        req.header(ActionSignatureTimestampHeader) ?? "0"
+      );
+      const body = JSON.stringify(req.body);
+      const publicKey = this.getPublicKey();
+      const signature = ecdsaSignature ?? ed25519Signature;
+      if (!signature) {
+        res.status(401);
+        res.send({
+          message: `${ActionEcdsaSignatureHeader} or ${ActionEd25519SignatureHeader} header is required`,
+        });
+        return;
+      }
+      if (!publicKey) {
+        res.status(401);
+        res.send({
+          message: `Public key is not set.`,
+        });
+        return;
+      }
+      const signatureType = signature === ecdsaSignature ? "ecdsa" : "ed25519";
 
-    this.verifyRequest(
-      body,
-      signatureTimestamp,
-      signature,
-      publicKey,
-      signatureType
-    );
+      this.verifyRequest(
+        body,
+        signatureTimestamp,
+        signature,
+        publicKey,
+        signatureType
+      );
+    }
   }
 
   generateEd25519KeyPair() {
