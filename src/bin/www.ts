@@ -4,6 +4,7 @@ import app from "../app";
 import * as http from "http";
 import * as dotenv from "dotenv"; // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 import debug from "debug";
+import { SignatureVerifier } from "../helpers/verify";
 
 dotenv.config();
 /**
@@ -26,12 +27,16 @@ app.set("port", port);
 const server = http.createServer(app);
 
 /**
- * Listen on provided port, on all network interfaces.
+ * Initialize all services, listen on provided port, on all network interfaces.
  */
 
-server.listen(port);
-server.on("error", onError);
-server.on("listening", onListening);
+Promise.all([SignatureVerifier.initVerifier()])
+  .then((_) => {
+    server.listen(port);
+    server.on("error", onError);
+    server.on("listening", onListening);
+  })
+  .catch((e) => onError(e));
 
 /**
  * Normalize a port into a number, string, or false.
@@ -76,6 +81,7 @@ function onError(error: any) {
       break;
     default:
       throw error;
+      process.exit(1);
   }
 }
 
