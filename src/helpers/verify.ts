@@ -1,6 +1,7 @@
 import { utils, Wallet } from "ethers";
 import nacl from "tweetnacl";
 import { Request, Response } from "express";
+import { decode } from "bs58";
 import {
   ActionEcdsaSignatureHeader,
   ActionEd25519SignatureHeader,
@@ -20,7 +21,6 @@ type CollabLandConfig = {
   discordClientId: string;
   actionEcdsaPublicKey: string;
   actionEd25519PublicKey: string;
-  actionEd25519PublicKeyHex: string;
 };
 
 export class SignatureVerifier {
@@ -40,7 +40,9 @@ export class SignatureVerifier {
       }
     );
     SignatureVerifier.ECDSAPublicKey = keys.actionEcdsaPublicKey;
-    SignatureVerifier.ED25519PublicKey = keys.actionEd25519PublicKeyHex;
+    SignatureVerifier.ED25519PublicKey = Buffer.from(
+      decode(keys.actionEd25519PublicKey)
+    ).toString("hex");
     debug("API URL for Collab.Land Config:", apiUrl);
     debug("SingatureVerifier Initialized");
   }
