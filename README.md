@@ -78,7 +78,7 @@ The repository serves as a Express.js template for implementing Collab.Land acti
 
 ## **Contributing** 🫶
 
-- Please go through the following article [[**Link**]()] to understand the deep technical details regarding building on the Collab.Land actions platform.
+- Please go through the following article [[**Link**](https://dev.collab.land/docs/upstream-integrations/build-a-custom-action)] to understand the deep technical details regarding building on the Collab.Land actions platform.
 - In order to change the slash commands for the actions, try editing the `MiniAppManifest` models mentioned in the metadata route handlers [[Here 👀]](src/routes/hello-action.ts#L86)
 - In order to change the logic which runs on the slash commands, try changing the `handle()` function mentioned in the interactions route handlers [[Here 👀]](src/routes/hello-action.ts#L23)
 
