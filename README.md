@@ -83,4 +83,5 @@ The repository serves as a Express.js template for implementing Collab.Land acti
 - In order to change the logic which runs on the slash commands, try changing the `handle()` function mentioned in the interactions route handlers [[Here 👀]](src/routes/hello-action.ts#L23)
 
 ---
+
 <div align="center"><b><i><small>Built with ❤️ and 🤝 by Collab.Land</small></i></b></div>
