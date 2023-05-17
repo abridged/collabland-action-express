@@ -13,8 +13,11 @@ import { MiniAppManifest } from "@collabland/models";
 import {
   ActionRowBuilder,
   ModalActionRowComponentBuilder,
+  MessageActionRowComponentBuilder,
   ModalBuilder,
   TextInputBuilder,
+  SelectMenuOptionBuilder,
+  StringSelectMenuBuilder,
 } from "discord.js";
 
 const router = express.Router();
@@ -30,16 +33,39 @@ function handle(interaction: APIInteraction) {
   }
 }
 
-function handleModalSubmit(
+async function handleModalSubmit(
   interaction: APIModalSubmitInteraction
-): APIInteractionResponse {
+): Promise<APIInteractionResponse> {
   const components = interaction.data.components;
-  const name = components[0]?.components[0]?.value;
+  const chain = components[0]?.components[0]?.value;
+  const tokenType = components[1]?.components[0]?.value;
+  const tokenAddress = components[2]?.components[0]?.value;
+
+  const apiCall = await fetch(
+    "https://iriko.testing.huddle01.com/api/v1/create-iframe-room",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Huddle01 Meet",
+        tokenType: tokenType,
+        chain: chain,
+        contractAddress: [tokenAddress],
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.API_KEY || "",
+      },
+    }
+  );
+
+  const apiResponse = await apiCall.json();
+  console.log(apiResponse);
+  const message = `Your meeting Link: ${apiResponse.data.meetingLink}`;
 
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      content: `You submitted ${name}`,
+      content: message,
     },
   };
 }
@@ -47,17 +73,46 @@ function handleModalSubmit(
 function handleApplicationCommand(): APIInteractionResponse {
   const modal = new ModalBuilder().setCustomId(`submit`).setTitle("Submit");
 
-  const name = new TextInputBuilder()
-    .setCustomId("name")
-    .setLabel("Name")
-    .setPlaceholder("What's your name")
+  const tokenType = new TextInputBuilder()
+    .setCustomId("tokenType")
+    .setLabel("Token Type")
+    .setPlaceholder("ERC20/ERC721/ERC1155/SPL/BEP20")
+    .setMaxLength(100)
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true);
+
+  const chain = new TextInputBuilder()
+    .setCustomId("chain")
+    .setLabel("Chain")
+    .setPlaceholder("ETHEREUM/COSMOS/SOLANA/TEZOS/BSC")
+    .setMaxLength(100)
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true);
+
+  const tokenAddress = new TextInputBuilder()
+    .setCustomId("tokenAddress")
+    .setLabel("Token Address")
+    .setPlaceholder("0x0....")
     .setMaxLength(100)
     .setStyle(TextInputStyle.Short)
     .setRequired(true);
 
   const firstActionRow =
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(name);
+    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(chain);
   modal.addComponents(firstActionRow);
+
+  const secondActionRow =
+    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+      tokenType
+    );
+  modal.addComponents(secondActionRow);
+
+  const thirdActionRow =
+    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+      tokenAddress
+    );
+  modal.addComponents(thirdActionRow);
+
   return {
     type: InteractionResponseType.Modal,
     data: {
