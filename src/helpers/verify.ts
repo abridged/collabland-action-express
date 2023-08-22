@@ -1,16 +1,51 @@
 import { utils, Wallet } from "ethers";
 import nacl from "tweetnacl";
 import { Request, Response } from "express";
+import { decode } from "bs58";
 import {
   ActionEcdsaSignatureHeader,
   ActionEd25519SignatureHeader,
   ActionSignatureTimestampHeader,
 } from "../constants";
-import { debugFactory } from "@collabland/common";
+import {
+  debugFactory,
+  getFetch,
+  handleFetchResponse,
+} from "@collabland/common";
+const fetch = getFetch();
 
 const debug = debugFactory("SignatureVerifier");
 
+type CollabLandConfig = {
+  jwtPublicKey: string;
+  discordClientId: string;
+  actionEcdsaPublicKey: string;
+  actionEd25519PublicKey: string;
+};
+
 export class SignatureVerifier {
+  private static ECDSAPublicKey: string;
+  private static ED25519PublicKey: string;
+
+  static async initVerifier() {
+    const apiUrl = `https://api${
+      process.env.NODE_ENV === "production" ? "" : "-qa"
+    }.collab.land/config`;
+    const keysResponse = await fetch(apiUrl);
+    const keys = await handleFetchResponse<CollabLandConfig>(
+      keysResponse,
+      200,
+      {
+        customErrorMessage: `Error in fetching collab.land config from URL: ${apiUrl}`,
+      }
+    );
+    SignatureVerifier.ECDSAPublicKey = keys.actionEcdsaPublicKey;
+    SignatureVerifier.ED25519PublicKey = Buffer.from(
+      decode(keys.actionEd25519PublicKey)
+    ).toString("hex");
+    debug("API URL for Collab.Land Config:", apiUrl);
+    debug("SingatureVerifier Initialized");
+  }
   verify(req: Request, res: Response) {
     if (!process.env.SKIP_VERIFICATION) {
       const ecdsaSignature = req.header(ActionEcdsaSignatureHeader);
@@ -19,7 +54,6 @@ export class SignatureVerifier {
         req.header(ActionSignatureTimestampHeader) ?? "0"
       );
       const body = JSON.stringify(req.body);
-      const publicKey = this.getPublicKey();
       const signature = ecdsaSignature ?? ed25519Signature;
       if (!signature) {
         res.status(401);
@@ -28,6 +62,8 @@ export class SignatureVerifier {
         });
         return;
       }
+      const signatureType = signature === ecdsaSignature ? "ecdsa" : "ed25519";
+      const publicKey = this.getPublicKey(signatureType);
       if (!publicKey) {
         res.status(401);
         res.send({
@@ -35,7 +71,6 @@ export class SignatureVerifier {
         });
         return;
       }
-      const signatureType = signature === ecdsaSignature ? "ecdsa" : "ed25519";
 
       this.verifyRequest(
         body,
@@ -63,8 +98,10 @@ export class SignatureVerifier {
     };
   }
 
-  private getPublicKey() {
-    return process.env.COLLABLAND_ACTION_PUBLIC_KEY;
+  private getPublicKey(signatureType: "ecdsa" | "ed25519") {
+    return signatureType === "ecdsa"
+      ? SignatureVerifier.ECDSAPublicKey
+      : SignatureVerifier.ED25519PublicKey;
   }
 
   private verifyRequest(
