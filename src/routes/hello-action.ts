@@ -6,10 +6,12 @@ import {
   APIInteractionResponse,
   ApplicationCommandOptionType,
   ApplicationCommandType,
+  buildInteractionResponse,
   DiscordActionMetadata,
   DiscordActionRequest,
   DiscordActionResponse,
   getCommandOptionValue,
+  getSubCommandOption,
   InteractionResponseType,
   InteractionType,
   MessageFlags,
@@ -21,6 +23,34 @@ import { MiniAppManifest } from "@collabland/models";
 const router = express.Router();
 
 async function handle(
+  interaction: DiscordActionRequest<APIChatInputApplicationCommandInteraction>
+): Promise<DiscordActionResponse> {
+  const subCommand = getSubCommandOption(interaction)!;
+
+  switch (subCommand.name) {
+    case "help": {
+      return help();
+    }
+    case "ping": {
+      return ping(interaction);
+    }
+    default: {
+      return buildInteractionResponse(`Command not found.`);
+    }
+  }
+}
+
+async function help(): Promise<DiscordActionResponse> {
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content: "Use /hello-action ping to test action.",
+      flags: MessageFlags.Ephemeral,
+    },
+  };
+}
+
+async function ping(
   interaction: DiscordActionRequest<APIChatInputApplicationCommandInteraction>
 ): Promise<DiscordActionResponse> {
   /**
@@ -125,10 +155,22 @@ router.get("/metadata", function (req, res) {
         description: "/hello-action",
         options: [
           {
-            name: "your-name",
-            description: "Name of person we're greeting",
-            type: ApplicationCommandOptionType.String,
-            required: true,
+            name: "help",
+            description: "Know about command.",
+            type: 1,
+          },
+          {
+            name: "ping",
+            description: "To check the command.",
+            type: 1,
+            options: [
+              {
+                name: "your-name",
+                description: "Name of person we're greeting",
+                type: ApplicationCommandOptionType.String,
+                required: true,
+              },
+            ],
           },
         ],
       },
