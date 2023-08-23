@@ -68,6 +68,7 @@ router.get("/metadata", function (req, res) {
     version: { name: "0.0.1" },
     website: "https://collab.land",
     description: "An example Collab.Land action",
+    shortDescription: "A short description for the miniapp card"
   });
   const metadata: DiscordActionMetadata = {
     /**
