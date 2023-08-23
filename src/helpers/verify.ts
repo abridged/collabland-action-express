@@ -8,9 +8,11 @@ import {
   ActionSignatureTimestampHeader,
 } from "../constants";
 import {
+  AnyType,
   debugFactory,
   getFetch,
   handleFetchResponse,
+  HttpErrors,
 } from "@collabland/common";
 const fetch = getFetch();
 
@@ -48,37 +50,49 @@ export class SignatureVerifier {
   }
   verify(req: Request, res: Response) {
     if (!process.env.SKIP_VERIFICATION) {
-      const ecdsaSignature = req.header(ActionEcdsaSignatureHeader);
-      const ed25519Signature = req.header(ActionEd25519SignatureHeader);
-      const signatureTimestamp: number = parseInt(
-        req.header(ActionSignatureTimestampHeader) ?? "0"
-      );
-      const body = JSON.stringify(req.body);
-      const signature = ecdsaSignature ?? ed25519Signature;
-      if (!signature) {
-        res.status(401);
-        res.send({
-          message: `${ActionEcdsaSignatureHeader} or ${ActionEd25519SignatureHeader} header is required`,
-        });
-        return;
+      try {
+        debug("Verifying signature...");
+        const ecdsaSignature = req.header(ActionEcdsaSignatureHeader);
+        const ed25519Signature = req.header(ActionEd25519SignatureHeader);
+        const signatureTimestamp: number = parseInt(
+          req.header(ActionSignatureTimestampHeader) ?? "0"
+        );
+        const body = JSON.stringify(req.body);
+        const signature = ecdsaSignature ?? ed25519Signature;
+        if (!signature) {
+          throw new HttpErrors[401](
+            `${ActionEcdsaSignatureHeader} or ${ActionEd25519SignatureHeader} header is required`
+          );
+        }
+        const signatureType =
+          signature === ecdsaSignature ? "ecdsa" : "ed25519";
+        const publicKey = this.getPublicKey(signatureType);
+        if (!publicKey) {
+          throw new HttpErrors[401](`Public key is not set.`);
+        }
+        this.verifyRequest(
+          body,
+          signatureTimestamp,
+          signature,
+          publicKey,
+          signatureType
+        );
+        return true;
+      } catch (err) {
+        if (HttpErrors.isHttpError(err)) {
+          res.status(err.statusCode).json({
+            message: err.message,
+          });
+          return false;
+        } else {
+          res.status(403).json({
+            message: "Unauthorized",
+          });
+          return false;
+        }
       }
-      const signatureType = signature === ecdsaSignature ? "ecdsa" : "ed25519";
-      const publicKey = this.getPublicKey(signatureType);
-      if (!publicKey) {
-        res.status(401);
-        res.send({
-          message: `Public key is not set.`,
-        });
-        return;
-      }
-
-      this.verifyRequest(
-        body,
-        signatureTimestamp,
-        signature,
-        publicKey,
-        signatureType
-      );
+    } else {
+      return true;
     }
   }
 
@@ -113,7 +127,9 @@ export class SignatureVerifier {
   ) {
     const delta = Math.abs(Date.now() - signatureTimestamp);
     if (delta >= 5 * 60 * 1000) {
-      throw new Error("Invalid request - signature timestamp is expired.");
+      throw new HttpErrors[403](
+        "Invalid request - signature timestamp is expired."
+      );
     }
     const msg = signatureTimestamp + body;
     if (signatureType === "ed25519") {
@@ -146,13 +162,13 @@ export class SignatureVerifier {
           Buffer.from(publicKey, "hex")
         );
       debug("Signature verified: %s", verified);
-    } catch (err: any) {
+    } catch (err: AnyType) {
       verified = false;
       debug(err.message);
     }
 
     if (!verified) {
-      throw new Error(
+      throw new HttpErrors[403](
         "Invalid request - Ed25519 signature cannot be verified."
       );
     }
@@ -185,7 +201,9 @@ export class SignatureVerifier {
 
     if (!verified) {
       debug("Invalid signature: %s, body: %s", signature, body);
-      throw new Error("Invalid request - Ecdsa signature cannot be verified.");
+      throw new HttpErrors[403](
+        "Invalid request - Ecdsa signature cannot be verified."
+      );
     }
     return verified;
   }

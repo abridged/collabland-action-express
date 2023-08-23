@@ -139,9 +139,11 @@ router.get("/metadata", function (req, res) {
 
 router.post("/interactions", async function (req, res) {
   const verifier = new SignatureVerifier();
-  verifier.verify(req, res);
-  const result = await handle(req.body);
-  res.send(result);
+  const verified = verifier.verify(req, res);
+  if (verified) {
+    const result = await handle(req.body);
+    res.send(result);
+  }
 });
 
 export default router;
